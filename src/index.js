@@ -18,7 +18,7 @@ const updateTemplateLiterals = {
         const node = path.node
         if (!node.translated && node.tag.name === 'i18n' || (node.tag.callee && (node.tag.callee.name === 'i18n' || (node.tag.callee.property && node.tag.callee.property.name === 'i18n'))) || (node.tag.property && node.tag.property.name === 'i18n')) {
             const quasi = node.quasi || node.tag.callee.quasi || node.tag.callee.property.quasi
-            
+
             const quasis = quasi.quasis.map((n) => n.value.raw)
             const ext = quasis.map((q) => {
                 const match = q.match(typeInfoRegex)
@@ -27,12 +27,12 @@ const updateTemplateLiterals = {
                 }
                 return ''
             })
-            const key = buildKey(quasis)            
+            const key = buildKey(quasis)
 
             if(node.tag.arguments && node.tag.arguments.length) {
                 groupName = path.node.tag.arguments[0].value
             }
-            
+
             let translation
             if(groupName) {
                 const group = translations[groupName]
@@ -72,7 +72,7 @@ const updateTemplateLiterals = {
                     }
                 }
                 const literal = t.templateLiteral(quasis, expressions)
-                const taggedTemplate = t.taggedTemplateExpression(path.node.tag, literal)                
+                const taggedTemplate = t.taggedTemplateExpression(path.node.tag, literal)
                 path.replaceWith(taggedTemplate)
                 taggedTemplate.translated = true
             }
@@ -121,7 +121,7 @@ const babelPlugin = function () {
                     const ast = t.expressionStatement(t.callExpression(t.identifier('i18nConfig'), [objectExpression]))
                     p.unshiftContainer('body', ast)
                 }
-                
+
                 if (opts['globalImport'] || opts['config']) {
                     const newImport = t.importDeclaration(
                         [t.importDefaultSpecifier(t.identifier('i18n')), t.importSpecifier(t.identifier('i18nConfig'), t.identifier('i18nConfig')), t.importSpecifier(t.identifier('i18nGroup'), t.identifier('i18nGroup'))],
@@ -129,7 +129,7 @@ const babelPlugin = function () {
                     )
 
                     p.unshiftContainer('body', newImport)
-                }     
+                }
 
                 let filename = ''
                 if(opts.groupDir) {
@@ -137,18 +137,24 @@ const babelPlugin = function () {
                     const code = `const __translationGroup = ${JSON.stringify(filename)};`
                     const objectExpression = babylon.parse(code).program.body[0]
                     p.unshiftContainer('body', objectExpression)
-                }           
+                }
 
                 let translations = {}
                 if (opts.translation) {
+                    const verbose = !opts.hasOwnProperty('verbose') || opts.verbose === true
                     try {
                         const translationsFile = path.resolve(process.cwd(), opts.translation)
-                        console.log(`Reading: ${translationsFile} ...`)
+                        if (verbose) {
+                          console.log(`Reading: ${translationsFile} ...`)
+                        }
                         translations = JSON.parse(fs.readFileSync(translationsFile, 'utf-8'))
                         if(opts.config && opts.config.translations) {
                             translations = Object.assign(translations, opts.config.translations)
                         }
-                        console.log('Successfully imported translations.')
+
+                        if (verbose) {
+                          console.log('Successfully imported translations.')
+                        }
                     } catch (err) {
                         console.warn(err.message)
                     }
